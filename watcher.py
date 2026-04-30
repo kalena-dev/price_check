@@ -130,6 +130,12 @@ def run(args: argparse.Namespace) -> int:
     if not webhook_url and not args.dry_run:
         log.warning("DISCORD_WEBHOOK_URL not set; alerts will be skipped")
 
+    # Cap alerts per retailer per cycle so a wide-open ceiling or a noisy
+    # retailer can't flood the Discord channel. Beyond the cap, we still
+    # write to state.db (so they're deduped on the next run) and post one
+    # summary embed instead of N individual ones.
+    max_per_retailer = int(config.get("max_alerts_per_retailer", 10))
+
     if args.dry_run:
         embeds_to_post: list[dict] = []
         store = None
@@ -161,6 +167,8 @@ def run(args: argparse.Namespace) -> int:
             continue
 
         stats["scanned"] = len(listings)
+        retailer_alerts: list[dict] = []
+        retailer_alerts_suppressed = 0
 
         for listing in listings:
             if listing.cpu not in ceilings:
@@ -194,9 +202,25 @@ def run(args: argparse.Namespace) -> int:
                 decision.reason, listing.retailer, listing.cpu, listing.price_cad,
             )
             if webhook_url:
-                embeds_to_post.append(
-                    notifier.build_embed(listing, decision.reason, decision.prev_price)
-                )
+                if len(retailer_alerts) < max_per_retailer:
+                    retailer_alerts.append(
+                        notifier.build_embed(listing, decision.reason, decision.prev_price)
+                    )
+                else:
+                    retailer_alerts_suppressed += 1
+
+        # Add this retailer's embeds to the global queue, plus a summary if
+        # we suppressed anything.
+        embeds_to_post.extend(retailer_alerts)
+        if retailer_alerts_suppressed > 0:
+            embeds_to_post.append(notifier.build_summary_embed(
+                key, len(retailer_alerts), retailer_alerts_suppressed,
+            ))
+            log.warning(
+                "%s: capped at %d alerts; %d more suppressed (raise config "
+                "ceilings or add max_alerts_per_retailer)",
+                key, len(retailer_alerts), retailer_alerts_suppressed,
+            )
 
         log.info("%s stats: %s", key, dict(stats))
 

@@ -142,3 +142,9 @@ alert_on_drop_pct: 5
 
 # Hard floor on RAM. Apple M-series base is often 16GB so 16 is a safe global floor.
 min_ram_gb: 16
+
+# Cap on alerts per retailer per cycle. Beyond this, additional under-ceiling
+# matches are stored in state.db (so they don't re-fire) but a single summary
+# embed is posted instead of N individual ones. Keeps Discord readable when
+# a retailer's catalog has dozens of cheap configs of the same chip family.
+max_alerts_per_retailer: 8

@@ -104,6 +104,28 @@ def post(webhook_url: str, embeds: list[dict]) -> None:
             )
 
 
+def build_summary_embed(
+    retailer: str,
+    shown_count: int,
+    suppressed_count: int,
+) -> dict:
+    """Build a summary embed when we suppressed alerts to avoid flooding."""
+    retailer_name = RETAILER_DISPLAY.get(retailer, retailer)
+    total = shown_count + suppressed_count
+    return {
+        "title": f"{retailer_name}: {total} matches under ceiling",
+        "description": (
+            f"Showing first **{shown_count}** alerts above; **{suppressed_count}** "
+            "more matches are stored in state.db but not posted to keep the "
+            "channel readable. Tighten the tier ceiling for the noisy CPU "
+            "or set `max_alerts_per_retailer` in `config.yaml`."
+        ),
+        "color": COLOR_ERROR,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "footer": {"text": f"summary - {retailer}"},
+    }
+
+
 def post_error(webhook_url: str, retailer: str, message: str) -> None:
     """Post a single 'scraper broken' notice."""
     embed = {
