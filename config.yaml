@@ -1,0 +1,80 @@
+# laptop-price-watcher config
+# Tier ceilings — every CPU in a tier inherits the tier's max_price_cad.
+# Add or remove CPUs/tiers freely. Canonical CPU strings come from retailers/_normalize.py.
+
+watch_tiers:
+  halo:
+    max_price_cad: 3200
+    cpus:
+      - "9955HX3D"
+      - "9955HX"
+      - "285HX"
+      - "290HX"
+      - "M5 Max 18"
+      - "M5 Pro 18"
+      - "AI Max+ 395"
+      - "AI Max+ Pro 395"
+      - "AI Max+ 392"
+
+  high:
+    max_price_cad: 2600
+    cpus:
+      - "9850HX"
+      - "275HX"
+      - "M5 Pro 15"
+      - "M4 Max 16"
+      - "AI Max 390"
+      - "AI Max Pro 390"
+      - "HX 470"
+      - "HX_PRO 470"
+      - "388H"
+
+  mid_high:
+    max_price_cad: 2000
+    cpus:
+      - "8945HX"
+      - "8940HX"
+      - "265HX"
+      - "235HX"
+      - "M4 Max 14"
+      - "M4 Pro 14"
+      - "HX 375"
+      - "HX 370"
+      - "HX_PRO 375"
+      - "HX_PRO 370"
+      - "AI Max 385"
+      - "AI Max Pro 385"
+      - "H 465"
+      - "7840HX"
+      - "Snapdragon X Elite"
+      - "265H"
+      - "358H"
+
+  mid:
+    max_price_cad: 1500
+    cpus:
+      - "8745HX"
+      - "7700G"
+      - "M4 Pro 12"
+      - "356H"
+
+retailers:
+  - bestbuy_ca
+  - newegg_ca
+  - canadacomputers
+  - memoryexpress
+  - apple_ca
+
+# Condition filter applied to all retailers except apple_ca (see apple_include_refurb).
+conditions:
+  - new
+  - open_box
+
+# apple_ca-only override — Apple's refurb store is the only place M-chips meaningfully drop.
+apple_include_refurb: true
+
+# Drop alert fires when current price is N% below the last-alerted price.
+alert_on_drop_pct: 5
+
+# Hard floor on RAM. Apple M-series base is often 16GB so 16 is a safe global floor.
+min_ram_gb: 16
