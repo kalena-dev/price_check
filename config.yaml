@@ -59,11 +59,13 @@ watch_tiers:
       - "356H"
 
 retailers:
-  - bestbuy_ca
+  - bestbuy_ca         # Akamai-protected; almost always skips (left in for occasional hits)
   - newegg_ca
-  - canadacomputers
-  - memoryexpress
+  - canadacomputers    # JS-rendered; usually empty without Playwright
+  - memoryexpress      # Cloudflare challenge; almost always skips
   - apple_ca
+  - lenovo_ca          # Playwright-driven (Legion, LOQ, ThinkPad direct from OEM)
+  - redflagdeals       # community-curated CA deals across all retailers
 
 # Condition filter applied to all retailers except apple_ca (see apple_include_refurb).
 conditions:

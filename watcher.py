@@ -47,6 +47,8 @@ RETAILER_REGISTRY = {
     "canadacomputers": ("retailers.canadacomputers", "CanadaComputers"),
     "memoryexpress":   ("retailers.memoryexpress",   "MemoryExpress"),
     "apple_ca":        ("retailers.apple_ca",        "AppleCA"),
+    "lenovo_ca":       ("retailers.lenovo_ca",       "LenovoCA"),
+    "redflagdeals":    ("retailers.redflagdeals",    "RedFlagDeals"),
 }
 
 

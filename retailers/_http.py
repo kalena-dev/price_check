@@ -25,7 +25,7 @@ DEFAULT_HEADERS = {
         "image/avif,image/webp,*/*;q=0.8"
     ),
     "Accept-Language": "en-CA,en;q=0.9,fr-CA;q=0.8,fr;q=0.7",
-    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive",
     "Sec-Fetch-Dest": "document",
     "Sec-Fetch-Mode": "navigate",

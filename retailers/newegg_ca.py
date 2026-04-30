@@ -75,12 +75,15 @@ def _build_image_url(item_number: str, image_name_list: str) -> str | None:
 def _build_product_url(item_number: str) -> str:
     """Construct the canonical product page URL from Newegg's Item identifier.
 
-    Catalog items use a hyphenated ID like "34-840-623" -> N82E1634840623.
-    Marketplace items use a flat SKU like "9SIARXSKNV4969" -> direct.
+    Catalog items use a hyphenated ID like "34-840-623"; the canonical URL
+    inserts Newegg's catalog code "8" between the "N82E16" prefix and the
+    flat ID — so "34-840-623" -> "N82E16834840623".
+
+    Marketplace items use a flat SKU like "9SIARXSKNV4969" and need no prefix.
     """
     if "-" in item_number:
         flat = item_number.replace("-", "")
-        return f"https://www.newegg.ca/p/N82E16{flat}"
+        return f"https://www.newegg.ca/p/N82E168{flat}"
     return f"https://www.newegg.ca/p/{item_number}"
 
 
