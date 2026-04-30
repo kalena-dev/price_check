@@ -66,6 +66,7 @@ retailers:
   - apple_ca
   - lenovo_ca          # Playwright-driven (Legion, LOQ, ThinkPad direct from OEM)
   - redflagdeals       # community-curated CA deals across all retailers
+  - visions_ca         # Playwright + stealth (gaming-laptops category)
 
 # Condition filter applied to all retailers except apple_ca (see apple_include_refurb).
 conditions:

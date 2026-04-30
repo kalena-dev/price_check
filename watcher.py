@@ -49,6 +49,7 @@ RETAILER_REGISTRY = {
     "apple_ca":        ("retailers.apple_ca",        "AppleCA"),
     "lenovo_ca":       ("retailers.lenovo_ca",       "LenovoCA"),
     "redflagdeals":    ("retailers.redflagdeals",    "RedFlagDeals"),
+    "visions_ca":      ("retailers.visions_ca",      "VisionsCA"),
 }
 
 
