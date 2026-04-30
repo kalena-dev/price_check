@@ -195,7 +195,15 @@ class NeweggCA(Retailer):
                 or sub.get("RealSubCategoryDescription")
                 or ""
             )
-        if "laptop" not in sub_desc.lower() and "notebook" not in sub_desc.lower():
+        sd = sub_desc.lower()
+        is_laptop_cat = ("laptop" in sd or "notebook" in sd) and not any(
+            kw in sd
+            for kw in (
+                "accessor", "adapter", "charger", "case", "stand",
+                "battery", "cable", "dock", "cooler", "sleeve", "bag",
+            )
+        )
+        if not is_laptop_cat:
             return None
 
         title = _extract_title(cell.get("Description"))
@@ -218,6 +226,11 @@ class NeweggCA(Retailer):
         except Exception:
             return None
         if price <= 0:
+            return None
+        # Sanity floor — laptops with HX/Strix Halo/M-series chips never
+        # retail anywhere close to $400. Anything under that price is an
+        # accessory or marketplace junk that slipped past the category filter.
+        if price < Decimal("400"):
             return None
 
         image_info = cell.get("Image") or {}
