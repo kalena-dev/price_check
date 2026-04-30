@@ -61,16 +61,40 @@ def _extract_retailer(title: str) -> tuple[str, str]:
 
 
 def _extract_price(title: str) -> Decimal | None:
-    """Pick the largest price-shaped number in the title — most threads
-    quote the actual sale price last (e.g. 'Was $2799 now $2239')."""
-    matches = _PRICE_RE.findall(title)
-    if not matches:
+    """Pick the most likely SALE price out of an RFD post title.
+
+    RFD titles vary wildly:
+        "[Newegg] Lenovo Legion $1939"         -> $1939
+        "Was $2685 Now $2290"                   -> $2290
+        "$1999 Acer Predator (Save $300)"       -> $1999
+        "Save $600 on Legion ($2299)"           -> $2299  (NOT $600)
+        "Lenovo Legion $300 off, now $1699"     -> $1699  (NOT $300)
+
+    Strategy: drop any $ amounts that are preceded within ~12 chars by
+    'save', 'off', or 'discount' (common RFD savings phrasing), then take
+    the last remaining amount above the $700 sanity floor — RFD posts
+    almost always cite the final sale price last.
+    """
+    if not title:
         return None
-    prices = [_parse_decimal(m) for m in matches]
-    prices = [p for p in prices if p is not None and p >= Decimal("400")]
-    if not prices:
+    # Find all $ amounts with their string positions.
+    candidates: list[tuple[int, Decimal]] = []
+    for m in _PRICE_RE.finditer(title):
+        d = _parse_decimal(m.group(1))
+        if d is None or d < Decimal("700"):
+            continue
+        # Look back ~12 chars for 'save'/'off'/'discount' which signal
+        # this $ amount is a savings number, not the sale price.
+        prefix = title[max(0, m.start() - 16):m.start()].lower()
+        if any(kw in prefix for kw in ("save", " off", "discount", "rebate")):
+            continue
+        candidates.append((m.start(), d))
+    if not candidates:
         return None
-    return min(prices)  # the lowest dollar amount; usually the sale price
+    # Sort by position, take the last — RFD posters typically write the
+    # sale price last ("was X now Y" pattern).
+    candidates.sort(key=lambda x: x[0])
+    return candidates[-1][1]
 
 
 def _extract_thread_id(href: str) -> str | None:

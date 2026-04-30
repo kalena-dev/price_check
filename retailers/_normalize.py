@@ -4,12 +4,13 @@ Maps any retailer title string to a canonical CPU identifier matching the
 forms used in config.yaml. Returns None if no known CPU is detected.
 
 Canonical forms by family:
-    AMD Ryzen HX / G       -> "9955HX3D", "8945HX", "7700G"
-    Intel Core Ultra HX/H  -> "275HX", "265H", "388H"
-    AMD Strix Halo         -> "AI Max+ Pro 395", "AI Max 390"
-    AMD Ryzen AI HX/H      -> "HX_PRO 375", "HX 370", "H 465"
-    Apple M-series         -> "M5 Max 18", "M4 Pro 14"
-    Qualcomm Snapdragon X  -> "Snapdragon X Elite"
+    AMD Ryzen HX / G        -> "9955HX3D", "8945HX", "7700G"
+    Intel Core Ultra HX/H   -> "275HX", "265H", "388H"
+    Intel Core i-series HX  -> "14900HX", "13900HX", "13700HX"  (Raptor Lake)
+    AMD Strix Halo          -> "AI Max+ Pro 395", "AI Max 390"
+    AMD Ryzen AI HX/H       -> "HX_PRO 375", "HX 370", "H 465"
+    Apple M-series          -> "M5 Max 18", "M4 Pro 14", "M3 Max 16"
+    Qualcomm Snapdragon X   -> "Snapdragon X Elite"
 """
 
 from __future__ import annotations
@@ -101,6 +102,21 @@ def _match_intel_ultra(text: str) -> str | None:
     return m.group(1).upper()
 
 
+# Intel Core i-series Raptor Lake / Alder Lake HX / H — last-gen flagships.
+# Form: "Core i9-14900HX", "Intel Core i7-13700HX", "i9 13900HX"
+_RE_INTEL_CORE_LEGACY = re.compile(
+    r"\b(?:intel\s+)?(?:core\s+)?i[579][\s\-]+(\d{4,5}(?:hx|hk|h|u))\b",
+    re.IGNORECASE,
+)
+
+
+def _match_intel_core_legacy(text: str) -> str | None:
+    m = _RE_INTEL_CORE_LEGACY.search(text)
+    if not m:
+        return None
+    return m.group(1).upper()
+
+
 # Apple M4/M5 Pro/Max with core count.
 # Two accepted forms:
 #   short: "M5 Max 18-Core", "M4 Pro 14 cœurs"
@@ -108,11 +124,11 @@ def _match_intel_ultra(text: str) -> str | None:
 # We require the core-count to be 8/10/12/14/16/18/20 to avoid matching
 # unrelated numbers in long titles.
 _RE_APPLE_SHORT = re.compile(
-    r"\b(m[45])\s+(pro|max)\s+(\d{2})[\s\-]?(?:cores?|cœurs?|coeurs?)\b",
+    r"\b(m[345])\s+(pro|max)\s+(\d{2})[\s\-]?(?:cores?|cœurs?|coeurs?)\b",
     re.IGNORECASE,
 )
 _RE_APPLE_LONG = re.compile(
-    r"\b(m[45])\s+(pro|max)\b[^.|]{1,40}?"
+    r"\b(m[345])\s+(pro|max)\b[^.|]{1,40}?"
     r"(\d{2})[\s\-]?(?:cores?|cœurs?|coeurs?)\s*CPU",
     re.IGNORECASE,
 )
@@ -151,6 +167,7 @@ _HANDLERS = (
     _match_ryzen_ai_hx,
     _match_ryzen_4d,
     _match_intel_ultra,
+    _match_intel_core_legacy,
     _match_apple,
     _match_snapdragon,
 )

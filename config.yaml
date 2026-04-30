@@ -3,60 +3,121 @@
 # Add or remove CPUs/tiers freely. Canonical CPU strings come from retailers/_normalize.py.
 
 watch_tiers:
+  # Top of the line — current-gen flagships, $3000+ MSRP territory.
   halo:
     max_price_cad: 3200
     cpus:
+      # AMD Fire Range top
       - "9955HX3D"
       - "9955HX"
+      # Intel Arrow Lake-HX flagship
       - "285HX"
       - "290HX"
+      # Apple current-gen Max
       - "M5 Max 18"
       - "M5 Pro 18"
+      - "M4 Max 16"           # M4 Max top variant — flagship MBP 16
+      # AMD Strix Halo top
       - "AI Max+ 395"
       - "AI Max+ Pro 395"
       - "AI Max+ 392"
 
+  # Premium — current-gen high-end + last-gen flagships.
   high:
     max_price_cad: 2600
     cpus:
+      # AMD Fire Range
       - "9850HX"
+      # Intel Arrow Lake-HX
       - "275HX"
-      - "M5 Pro 15"
-      - "M4 Max 16"
+      # AMD Strix Halo
       - "AI Max 390"
       - "AI Max Pro 390"
+      # Apple current-gen Pro/Max (lower core counts)
+      - "M5 Pro 15"
+      - "M5 Max 14"           # if released
+      - "M4 Max 14"
+      # Apple last-gen flagship Max
+      - "M3 Max 16"
+      - "M3 Max 14"
+      # Intel Raptor Lake-HX last-gen flagships (still common in 2025 inventory)
+      - "14900HX"
+      - "13980HX"
+      - "13950HX"
+      - "13900HX"
+      # AMD Dragon Range last-gen flagship
+      - "7945HX3D"
+      - "7945HX"
+      # Questionable entries from original screenshot — kept (no false positives)
       - "HX 470"
       - "HX_PRO 470"
       - "388H"
 
+  # Mainstream high-end — most common gaming/pro laptop chips.
   mid_high:
     max_price_cad: 2000
     cpus:
+      # AMD Fire Range
       - "8945HX"
       - "8940HX"
+      # Intel Arrow Lake-HX
       - "265HX"
+      - "255HX"               # Ultra 7 Arrow Lake-HX (the missing one we observed)
+      - "245HX"               # Ultra 5 Arrow Lake-HX
       - "235HX"
-      - "M4 Max 14"
+      # Intel Arrow Lake H/HX
+      - "265H"
+      - "358H"
+      - "285H"                # Ultra 9 H-class (lower TDP than HX)
+      - "275H"
+      # Apple current-gen Pro
       - "M4 Pro 14"
+      # Apple last-gen Pro
+      - "M3 Pro 12"
+      - "M3 Pro 11"
+      # AMD Ryzen AI HX (Strix Point top variants)
       - "HX 375"
       - "HX 370"
       - "HX_PRO 375"
       - "HX_PRO 370"
+      - "HX 365"              # mid-Strix-Point HX
+      # AMD Strix Halo lower
       - "AI Max 385"
       - "AI Max Pro 385"
+      # AMD AI H-class
       - "H 465"
+      # AMD Dragon Range last-gen
+      - "7845HX"
       - "7840HX"
+      # AMD Ryzen mobile (8000 series, 35W variants)
+      - "8945HS"
+      - "8845HS"
+      # Intel Raptor Lake-HX i7
+      - "13700HX"
+      # Qualcomm
       - "Snapdragon X Elite"
-      - "265H"
-      - "358H"
 
+  # Value end — older flagships + lower-spec current-gen.
   mid:
     max_price_cad: 1500
     cpus:
+      # AMD Fire Range
       - "8745HX"
       - "7700G"
-      - "M4 Pro 12"
+      # Intel Arrow Lake H
       - "356H"
+      # AMD Ryzen mobile (35W variants, last gen)
+      - "7945HS"
+      - "7840HS"
+      - "7735HS"
+      # Apple last-gen Pro low core counts
+      - "M4 Pro 12"
+      - "M3 Pro 11"
+      # Intel Raptor Lake-H mobile
+      - "13700H"
+      - "13620H"
+      # Qualcomm lower
+      - "Snapdragon X Plus"
 
 retailers:
   - bestbuy_ca         # Akamai-protected; almost always skips (left in for occasional hits)

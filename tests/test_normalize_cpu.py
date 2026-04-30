@@ -64,6 +64,22 @@ POSITIVES = [
     ("Apple M5 Pro chip with 14-core CPU and 20-core GPU", "M5 Pro 14"),
     ("M4 Pro with 12-core CPU and 16-core GPU", "M4 Pro 12"),
 
+    # Intel Core i-series Raptor Lake-HX (last-gen flagships, still common in
+    # 2025 inventory).
+    ("Intel Core i9-14900HX", "14900HX"),
+    ("Core i9-13900HX", "13900HX"),
+    ("Intel Core i7-12700H", "12700H"),
+    ("Intel Core i9 13950HX", "13950HX"),
+    ("Core i7-13700HX", "13700HX"),
+    ("Intel Core i9-13980HX", "13980HX"),
+    ("i9-14650HX laptop", "14650HX"),
+
+    # Apple M3 Pro/Max (last-gen flagship Apple Silicon).
+    ("Apple M3 Max 16-Core", "M3 Max 16"),
+    ("MacBook Pro Apple M3 Max chip with 16-core CPU and 40-core GPU", "M3 Max 16"),
+    ("Apple M3 Pro 12-Core", "M3 Pro 12"),
+    ("M3 Pro 11 Core", "M3 Pro 11"),
+
     # Qualcomm Snapdragon X.
     ("Snapdragon X Elite X1E001DE", "Snapdragon X Elite"),
     ("Qualcomm Snapdragon X Elite", "Snapdragon X Elite"),
@@ -77,10 +93,8 @@ POSITIVES = [
 ]
 
 
-# Strings that must NOT match — older or unrelated chips.
+# Strings that must NOT match — chips outside the families we recognize.
 NEGATIVES = [
-    "Intel Core i7-12700H",
-    "Intel Core i9-13900HX",
     "AMD Ryzen 7 5800H",
     "AMD Athlon Silver 3050U",
     "MacBook Air M2",
