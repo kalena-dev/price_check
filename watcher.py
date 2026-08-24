@@ -26,6 +26,7 @@ import yaml
 from dotenv import load_dotenv
 
 from notifier import discord as notifier
+from ranking import rank_listings
 from retailers.base import (
     Listing,
     Retailer,
@@ -46,10 +47,17 @@ RETAILER_REGISTRY = {
     "newegg_ca":       ("retailers.newegg_ca",       "NeweggCA"),
     "canadacomputers": ("retailers.canadacomputers", "CanadaComputers"),
     "memoryexpress":   ("retailers.memoryexpress",   "MemoryExpress"),
+    "walmart_ca":      ("retailers.walmart_ca",      "WalmartCA"),
     "apple_ca":        ("retailers.apple_ca",        "AppleCA"),
     "lenovo_ca":       ("retailers.lenovo_ca",       "LenovoCA"),
     "redflagdeals":    ("retailers.redflagdeals",    "RedFlagDeals"),
     "visions_ca":      ("retailers.visions_ca",      "VisionsCA"),
+    "bestbuy_prebuilts": (
+        "retailers.bestbuy_prebuilts", "BestBuyPrebuilts",
+    ),
+    "walmart_prebuilts": (
+        "retailers.walmart_prebuilts", "WalmartPrebuilts",
+    ),
 }
 
 
@@ -118,8 +126,22 @@ def run(args: argparse.Namespace) -> int:
     log.info("watching %d CPUs across %d tiers", len(cpu_filter),
              len(config.get("watch_tiers", {})))
 
-    retailer_keys = args.retailer or config.get("retailers", [])
-    if not retailer_keys:
+    configured_retailers = config.get("retailers", [])
+    configured_prebuilts = config.get("prebuilt_retailers", [])
+    if args.retailer:
+        retailer_keys = [key for key in args.retailer if key in configured_retailers]
+        prebuilt_keys = [key for key in args.retailer if key in configured_prebuilts]
+        unknown = [
+            key for key in args.retailer
+            if key not in configured_retailers and key not in configured_prebuilts
+        ]
+        if unknown:
+            log.error("unknown or disabled retailer(s): %s", ", ".join(unknown))
+            return 2
+    else:
+        retailer_keys = configured_retailers
+        prebuilt_keys = configured_prebuilts
+    if not retailer_keys and not prebuilt_keys:
         log.error("no retailers configured — aborting")
         return 2
 
@@ -171,7 +193,7 @@ def run(args: argparse.Namespace) -> int:
         retailer_alerts_suppressed = 0
 
         for listing in listings:
-            if listing.cpu not in ceilings:
+            if listing.product_type != "laptop" or listing.cpu not in ceilings:
                 continue
             stats["matched_cpu"] += 1
 
@@ -224,9 +246,109 @@ def run(args: argparse.Namespace) -> int:
 
         log.info("%s stats: %s", key, dict(stats))
 
+    # Prebuilts are catalogued for value rankings rather than threshold alerts.
+    # Their desktop CPUs use a separate normalizer in the dedicated adapters.
+    ranking_config = config.get("ranking") or {}
+    max_print_price = min(
+        Decimal("3000"),
+        Decimal(str(ranking_config.get("max_price_cad", 3000))),
+    )
+    for key in prebuilt_keys:
+        try:
+            retailer = load_retailer(key, config)
+        except Exception as e:
+            log.error("failed to load prebuilt retailer %r: %s", key, e)
+            continue
+
+        log.info("running %s ...", key)
+        stats = Counter()
+        try:
+            listings = retailer.search([])
+        except RetailerBlockedError as e:
+            log.warning("%s blocked: %s — skipping for this run", key, e)
+            continue
+        except RetailerParseError as e:
+            log.error("%s parse error: %s", key, e)
+            if webhook_url and not args.dry_run:
+                notifier.post_error(webhook_url, key, str(e))
+            continue
+        except Exception as e:
+            log.error("%s unexpected error: %s", key, e)
+            continue
+
+        stats["scanned"] = len(listings)
+        for listing in listings:
+            if listing.product_type != "prebuilt":
+                continue
+            stats["matched_prebuilt"] += 1
+            if not listing_passes_filters(listing, config):
+                continue
+            stats["passed_filters"] += 1
+            if listing.price_cad <= max_print_price:
+                stats["under_print_cap"] += 1
+            if args.dry_run:
+                continue
+            store.record_listing(listing)
+        log.info("%s stats: %s", key, dict(stats))
+
     if not args.dry_run and webhook_url and embeds_to_post:
         notifier.post(webhook_url, embeds_to_post)
-        log.info("posted %d embeds to Discord", len(embeds_to_post))
+        log.info("posted %d alert embeds to Discord", len(embeds_to_post))
+
+    # Post two independent <=10-embed messages. Embeds are emitted #10 to #1,
+    # making deals progressively worse as the user scrolls upward. Scheduled
+    # runs claim at most one automatic printout per UTC day; slash commands
+    # remain available at any time.
+    ranking_enabled = (
+        ranking_config.get("post_daily", True)
+        or ranking_config.get("post_each_cycle", False)
+    )
+    if not args.dry_run and store is not None and webhook_url and ranking_enabled:
+        max_age = float(ranking_config.get("max_age_hours", 36))
+        laptop_limit = min(10, int(ranking_config.get("laptop_limit", 10)))
+        prebuilt_limit = min(10, int(ranking_config.get("prebuilt_limit", 10)))
+        laptop_ranked = rank_listings(
+            store.current_listings(
+                "laptop", max_age_hours=max_age, max_price_cad=max_print_price,
+            ),
+            product_type="laptop",
+            max_price_cad=max_print_price,
+            limit=laptop_limit,
+        )
+        prebuilt_ranked = rank_listings(
+            store.current_listings(
+                "prebuilt", max_age_hours=max_age, max_price_cad=max_print_price,
+            ),
+            product_type="prebuilt",
+            max_price_cad=max_print_price,
+            limit=prebuilt_limit,
+        )
+        should_post = bool(ranking_config.get("post_each_cycle", False))
+        if (
+            not should_post
+            and ranking_config.get("post_daily", True)
+            and not args.retailer
+            and (laptop_ranked or prebuilt_ranked)
+        ):
+            should_post = store.claim_daily_ranking()
+
+        if should_post:
+            if laptop_ranked:
+                notifier.post(
+                    webhook_url,
+                    notifier.build_ranking_embeds(laptop_ranked, "laptop"),
+                )
+            if prebuilt_ranked:
+                notifier.post(
+                    webhook_url,
+                    notifier.build_ranking_embeds(prebuilt_ranked, "prebuilt"),
+                )
+            log.info(
+                "posted value rankings: %d laptops, %d prebuilts",
+                len(laptop_ranked), len(prebuilt_ranked),
+            )
+        else:
+            log.info("automatic value ranking is not due; skipping this cycle")
 
     if store is not None:
         store.close()

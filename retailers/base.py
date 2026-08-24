@@ -38,6 +38,7 @@ class Listing:
     price_cad: Decimal
     image_url: str | None
     condition: str = "new"         # "new" | "open_box" | "refurb" | "used"
+    product_type: str = "laptop"   # "laptop" | "prebuilt"
     retrieved_at: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

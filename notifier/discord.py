@@ -12,6 +12,7 @@ from decimal import Decimal
 import httpx
 from dotenv import load_dotenv
 
+from ranking import RankedDeal
 from retailers.base import Listing
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 COLOR_NEW = 0x57F287    # green
 COLOR_DROP = 0xFEE75C   # yellow/orange
 COLOR_ERROR = 0xED4245  # red, used for "scraper broken" notices
+COLOR_RANKED = 0x5865F2  # blurple
 
 # Display names per retailer key.
 RETAILER_DISPLAY = {
@@ -27,7 +29,13 @@ RETAILER_DISPLAY = {
     "newegg_ca": "Newegg CA",
     "canadacomputers": "Canada Computers",
     "memoryexpress": "Memory Express",
+    "walmart_ca": "Walmart CA",
     "apple_ca": "Apple CA",
+    "lenovo_ca": "Lenovo CA",
+    "redflagdeals": "RedFlagDeals",
+    "visions_ca": "Visions Electronics",
+    "bestbuy_prebuilts": "Best Buy CA",
+    "walmart_prebuilts": "Walmart CA",
 }
 
 
@@ -81,6 +89,68 @@ def build_embed(
     if listing.image_url:
         embed["thumbnail"] = {"url": listing.image_url}
     return embed
+
+
+def build_ranking_embeds(
+    ranked: list[RankedDeal],
+    product_type: str,
+) -> list[dict]:
+    """Build a worst-to-best Discord stack, so scrolling upward gets worse.
+
+    ``ranked`` is best-first. Discord displays embeds top-to-bottom, so #10 is
+    deliberately emitted first and #1 last (closest to the newest content).
+    """
+    kind = "Laptop" if product_type == "laptop" else "Prebuilt"
+    embeds: list[dict] = []
+    numbered = list(enumerate(ranked[:10], start=1))
+    for rank, deal in reversed(numbered):
+        listing = deal.listing
+        retailer_name = RETAILER_DISPLAY.get(listing.retailer, listing.retailer)
+        fields = [
+            {
+                "name": "Value index",
+                "value": f"**{deal.value_index}**",
+                "inline": True,
+            },
+            {
+                "name": "Component estimate",
+                "value": _format_price(deal.fair_value_cad),
+                "inline": True,
+            },
+            {"name": "CPU", "value": listing.cpu, "inline": True},
+        ]
+        if listing.ram_gb is not None:
+            fields.append({
+                "name": "RAM", "value": f"{listing.ram_gb} GB", "inline": True,
+            })
+        if listing.gpu:
+            fields.append({"name": "GPU", "value": listing.gpu, "inline": True})
+        fields.append({"name": "Retailer", "value": retailer_name, "inline": True})
+        if listing.condition != "new":
+            fields.append({
+                "name": "Condition",
+                "value": listing.condition.replace("_", " ").title(),
+                "inline": True,
+            })
+
+        embed = {
+            "title": f"#{rank} {kind} value — {_format_price(listing.price_cad)}",
+            "description": listing.title[:300],
+            "url": listing.url,
+            "color": COLOR_RANKED,
+            "fields": fields,
+            "timestamp": listing.retrieved_at.isoformat(),
+            "footer": {
+                "text": (
+                    f"Top {kind.lower()} deals · {deal.confidence} confidence · "
+                    "value = estimated hardware value / price"
+                )
+            },
+        }
+        if listing.image_url:
+            embed["thumbnail"] = {"url": listing.image_url}
+        embeds.append(embed)
+    return embeds
 
 
 def post(webhook_url: str, embeds: list[dict]) -> None:

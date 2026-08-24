@@ -18,6 +18,7 @@ import time
 import urllib.parse
 from decimal import Decimal
 
+from retailers._components import parse_system_ram
 from retailers._http import make_client
 from retailers._normalize import normalize_cpu
 from retailers.base import Listing, Retailer, RetailerBlockedError
@@ -88,11 +89,7 @@ def _build_product_url(item_number: str) -> str:
 
 
 def _parse_ram(title: str) -> int | None:
-    m = re.search(r"\b(\d{1,3})\s*GB\s*(?:DDR|RAM|Memory)", title, re.IGNORECASE)
-    if m:
-        return int(m.group(1))
-    m = re.search(r"\b(\d{1,3})\s*GB\b", title, re.IGNORECASE)
-    return int(m.group(1)) if m else None
+    return parse_system_ram(title)
 
 
 def _parse_gpu(title: str) -> str | None:

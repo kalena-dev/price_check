@@ -14,6 +14,7 @@ import urllib.parse
 from decimal import Decimal
 
 from retailers._browser import PlaywrightUnavailable, browser_session
+from retailers._components import parse_system_ram
 from retailers._normalize import normalize_cpu
 from retailers.base import Listing, Retailer, RetailerBlockedError
 
@@ -38,11 +39,7 @@ def _parse_decimal(text: str) -> Decimal | None:
 
 
 def _parse_ram(text: str) -> int | None:
-    m = re.search(r"\b(\d{1,3})\s*GB\s*DDR", text, re.IGNORECASE)
-    if m:
-        return int(m.group(1))
-    m = re.search(r"\b(\d{1,3})\s*GB\b", text, re.IGNORECASE)
-    return int(m.group(1)) if m else None
+    return parse_system_ram(text)
 
 
 def _parse_gpu(text: str) -> str | None:

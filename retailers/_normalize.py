@@ -10,7 +10,6 @@ Canonical forms by family:
     AMD Strix Halo          -> "AI Max+ Pro 395", "AI Max 390"
     AMD Ryzen AI HX/H       -> "HX_PRO 375", "HX 370", "H 465"
     Apple M-series          -> "M5 Max 18", "M4 Pro 14", "M3 Max 16"
-    Qualcomm Snapdragon X   -> "Snapdragon X Elite"
 """
 
 from __future__ import annotations
@@ -144,21 +143,6 @@ def _match_apple(text: str) -> str | None:
     return f"{chip} {variant} {cores}"
 
 
-# Qualcomm Snapdragon X Elite / Plus
-# Form: "Snapdragon X Elite X1E001DE", "Snapdragon X Plus"
-_RE_SNAPDRAGON = re.compile(
-    r"\bsnapdragon\s+x\s+(elite|plus)\b",
-    re.IGNORECASE,
-)
-
-
-def _match_snapdragon(text: str) -> str | None:
-    m = _RE_SNAPDRAGON.search(text)
-    if not m:
-        return None
-    return f"Snapdragon X {m.group(1).title()}"
-
-
 # --- Public API -------------------------------------------------------------
 
 # Order matters: most-specific first.
@@ -169,7 +153,6 @@ _HANDLERS = (
     _match_intel_ultra,
     _match_intel_core_legacy,
     _match_apple,
-    _match_snapdragon,
 )
 
 

@@ -25,6 +25,7 @@ import re
 from decimal import Decimal
 
 from retailers._browser import PlaywrightUnavailable, browser_session
+from retailers._components import parse_system_ram
 from retailers._normalize import normalize_cpu
 from retailers.base import Listing, Retailer, RetailerBlockedError
 
@@ -62,7 +63,6 @@ _AMBIGUOUS_CHIP_RE = re.compile(
     r"|ryzen\s+(?:ai\s+)?\d(?!\s*\d)"               # "Ryzen 9", "Ryzen AI 9" w/o digit
     r"|ryzen\s+ai\s+max\+?(?!\s*(?:pro\s+)?\d)"     # "Ryzen AI Max+" w/o 3-digit
     r"|m[45]\s+(?:pro|max)(?!\s*(?:chip\s+with\s+)?\d{1,2}[\s\-]?core)"  # "M4 Max" w/o cores
-    r"|snapdragon\s+x(?!\s+(?:elite|plus))"         # bare "Snapdragon X"
     r")\b",
     re.IGNORECASE,
 )
@@ -84,8 +84,7 @@ def _parse_decimal(s: str) -> Decimal | None:
 
 
 def _parse_ram(text: str) -> int | None:
-    m = re.search(r"\b(\d{1,3})\s*GB\b", text, re.IGNORECASE)
-    return int(m.group(1)) if m else None
+    return parse_system_ram(text)
 
 
 def _parse_gpu(text: str) -> str | None:

@@ -94,8 +94,6 @@ watch_tiers:
       - "8845HS"
       # Intel Raptor Lake-HX i7
       - "13700HX"
-      # Qualcomm
-      - "Snapdragon X Elite"
 
   # Value end — older flagships + lower-spec current-gen.
   mid:
@@ -116,18 +114,32 @@ watch_tiers:
       # Intel Raptor Lake-H mobile
       - "13700H"
       - "13620H"
-      # Qualcomm lower
-      - "Snapdragon X Plus"
 
 retailers:
-  - bestbuy_ca         # Akamai-protected; almost always skips (left in for occasional hits)
+  - bestbuy_ca         # public paginated search + product-spec enrichment
   - newegg_ca
   - canadacomputers    # JS-rendered; usually empty without Playwright
   - memoryexpress      # Cloudflare challenge; almost always skips
+  - walmart_ca         # embedded JSON; Walmart + marketplace laptop inventory
   - apple_ca
   - lenovo_ca          # Playwright-driven (Legion, LOQ, ThinkPad direct from OEM)
   - redflagdeals       # community-curated CA deals across all retailers
   - visions_ca         # Playwright + stealth (gaming-laptops category)
+
+# Gaming desktop/prebuilt sources. These feed the value ranking and do not use
+# the laptop CPU alert ceilings above.
+prebuilt_retailers:
+  - bestbuy_prebuilts
+  - walmart_prebuilts
+
+# One automatic Discord ranking per UTC day. Both lists are capped at 10;
+# embeds are sent #10 first and #1 last so scrolling upward gets worse.
+ranking:
+  post_daily: true
+  laptop_limit: 10
+  prebuilt_limit: 10
+  max_price_cad: 3000
+  max_age_hours: 36
 
 # Condition filter applied to all retailers except apple_ca (see apple_include_refurb).
 conditions:

@@ -20,6 +20,7 @@ from decimal import Decimal
 
 from bs4 import BeautifulSoup
 
+from retailers._components import parse_system_ram
 from retailers._http import make_client
 from retailers._normalize import normalize_cpu
 from retailers.base import Listing, Retailer, RetailerBlockedError
@@ -48,8 +49,7 @@ def _parse_price(text: str | None) -> Decimal | None:
 
 
 def _parse_ram(text: str) -> int | None:
-    m = re.search(r"\b(\d{1,3})\s*GB\b", text, re.IGNORECASE)
-    return int(m.group(1)) if m else None
+    return parse_system_ram(text)
 
 
 class AppleCA(Retailer):

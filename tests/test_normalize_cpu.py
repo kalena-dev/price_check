@@ -80,11 +80,6 @@ POSITIVES = [
     ("Apple M3 Pro 12-Core", "M3 Pro 12"),
     ("M3 Pro 11 Core", "M3 Pro 11"),
 
-    # Qualcomm Snapdragon X.
-    ("Snapdragon X Elite X1E001DE", "Snapdragon X Elite"),
-    ("Qualcomm Snapdragon X Elite", "Snapdragon X Elite"),
-    ("Snapdragon X Plus", "Snapdragon X Plus"),
-
     # French-language variants (Quebec retailers like La Source, BB CA fr-CA).
     ("Processeur Intel Core Ultra 9 275HX", "275HX"),
     ("Ordinateur portable AMD Ryzen 9 8945HX", "8945HX"),
@@ -100,6 +95,8 @@ NEGATIVES = [
     "MacBook Air M2",
     "16GB RAM 1TB SSD",
     "Gaming Laptop with RTX 4090",
+    "Qualcomm Snapdragon X Elite laptop",
+    "Snapdragon X Plus notebook",
     "",
     "   ",
 ]
