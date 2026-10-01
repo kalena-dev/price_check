@@ -24,6 +24,7 @@ import logging
 import re
 from decimal import Decimal
 
+from retailers._availability import availability_from_text
 from retailers._browser import PlaywrightUnavailable, browser_session
 from retailers._components import parse_system_ram
 from retailers._normalize import normalize_cpu
@@ -164,10 +165,20 @@ class VisionsCA(Retailer):
                         const img = card.querySelector('img[alt]');
                         const link = card.querySelector('a[href*="visions.ca/"]:not([href*="category"])');
                         if (!img || !link) continue;
+                        const purchasePattern = /\\b(add\\s+to\\s+(cart|bag)|buy\\s+now|purchase)\\b/i;
+                        const canPurchase = [...card.querySelectorAll('button, input, a, [role="button"]')]
+                            .some(el => {
+                                const label = [el.innerText, el.value, el.getAttribute('aria-label'), el.title]
+                                    .filter(Boolean).join(' ');
+                                const disabled = el.disabled || el.getAttribute('aria-disabled') === 'true'
+                                    || el.classList.contains('disabled');
+                                return purchasePattern.test(label) && !disabled;
+                            });
                         out.push({
                             alt: img.getAttribute('alt') || '',
                             href: link.href || '',
                             text: card.innerText || '',
+                            canPurchase,
                         });
                     }
                     return out;
@@ -179,6 +190,7 @@ class VisionsCA(Retailer):
                         row.get("href", ""),
                         row.get("text", ""),
                         detail_page if detail_fetches_left > 0 else None,
+                        can_purchase=row.get("canPurchase"),
                     )
                     if used_budget:
                         detail_fetches_left -= 1
@@ -196,6 +208,7 @@ class VisionsCA(Retailer):
         href: str,
         card_text: str,
         detail_page,
+        can_purchase: bool | None = None,
     ) -> tuple[Listing | None, bool]:
         """Returns (listing, used_detail_fetch)."""
         if not alt:
@@ -248,6 +261,10 @@ class VisionsCA(Retailer):
             price_cad=price,
             image_url=None,
             condition=condition,
+            availability=availability_from_text(
+                card_text,
+                has_purchase_action=can_purchase,
+            ),
         ), used_detail_fetch
 
     def _cpu_from_detail_page(self, detail_page, href: str) -> str | None:

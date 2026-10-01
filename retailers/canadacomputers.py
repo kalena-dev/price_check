@@ -14,6 +14,7 @@ from decimal import Decimal
 
 from bs4 import BeautifulSoup
 
+from retailers._availability import availability_from_html_card
 from retailers._components import parse_system_ram
 from retailers._http import make_client
 from retailers._normalize import normalize_cpu
@@ -187,4 +188,5 @@ class CanadaComputers(Retailer):
             price_cad=price,
             image_url=image_url,
             condition=condition,
+            availability=availability_from_html_card(card),
         )

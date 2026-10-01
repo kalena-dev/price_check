@@ -13,6 +13,7 @@ import re
 import urllib.parse
 from decimal import Decimal
 
+from retailers._availability import availability_from_text
 from retailers._browser import PlaywrightUnavailable, browser_session
 from retailers._components import parse_system_ram
 from retailers._normalize import normalize_cpu
@@ -135,6 +136,26 @@ class LenovoCA(Retailer):
         if not url:
             url = f"https://www.lenovo.com/ca/en/p/{code}"
 
+        has_purchase_action: bool | None = None
+        try:
+            has_purchase_action = bool(card_locator.evaluate("""card => {
+                const pattern = /\\b(add\\s+to\\s+(cart|bag)|buy\\s+now|purchase)\\b/i;
+                return [...card.querySelectorAll('button, input, a, [role="button"]')]
+                    .some(el => {
+                        const label = [el.innerText, el.value, el.getAttribute('aria-label'), el.title]
+                            .filter(Boolean).join(' ');
+                        const disabled = el.disabled || el.getAttribute('aria-disabled') === 'true'
+                            || el.classList.contains('disabled');
+                        return pattern.test(label) && !disabled;
+                    });
+            }"""))
+        except Exception:
+            pass
+        availability = availability_from_text(
+            text,
+            has_purchase_action=has_purchase_action,
+        )
+
         return Listing(
             retailer=self.name,
             sku=code,
@@ -146,6 +167,7 @@ class LenovoCA(Retailer):
             price_cad=price,
             image_url=None,
             condition="new",
+            availability=availability,
         )
 
     @staticmethod

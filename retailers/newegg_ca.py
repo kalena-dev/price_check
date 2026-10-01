@@ -18,6 +18,7 @@ import time
 import urllib.parse
 from decimal import Decimal
 
+from retailers._availability import availability_from_mapping
 from retailers._components import parse_system_ram
 from retailers._http import make_client
 from retailers._normalize import normalize_cpu
@@ -239,6 +240,18 @@ class NeweggCA(Retailer):
         if isinstance(normal, dict):
             image_url = _build_image_url(item, normal.get("ImageNameList") or "")
 
+        availability = availability_from_mapping(
+            cell,
+            status_keys=(
+                "availability",
+                "availabilityStatus",
+                "stockStatus",
+                "inventoryStatus",
+            ),
+            in_stock_keys=("instock", "inStock", "isInStock", "isAvailable"),
+            out_of_stock_keys=("isSoldOut", "soldOut", "isOutOfStock", "outOfStock"),
+        )
+
         condition = "new"
         ti = title.lower()
         if "open box" in ti or "open-box" in ti:
@@ -257,4 +270,5 @@ class NeweggCA(Retailer):
             price_cad=price,
             image_url=image_url,
             condition=condition,
+            availability=availability,
         )

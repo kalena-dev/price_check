@@ -132,9 +132,10 @@ prebuilt_retailers:
   - bestbuy_prebuilts
   - walmart_prebuilts
 
-# One automatic Discord ranking per UTC day. Both lists are capped at 10;
-# embeds are sent #10 first and #1 last so scrolling upward gets worse.
+# One interactive Discord menu per UTC day (persistent bot + DISCORD_CHANNEL_ID).
+# Use presentation: stack only for the legacy webhook multi-embed rankings.
 ranking:
+  presentation: menu
   post_daily: true
   laptop_limit: 10
   prebuilt_limit: 10

@@ -20,6 +20,7 @@ from decimal import Decimal
 
 from bs4 import BeautifulSoup
 
+from retailers._availability import walmart_availability
 from retailers._components import parse_system_ram
 from retailers._http import make_client
 from retailers._normalize import normalize_cpu
@@ -353,14 +354,7 @@ class WalmartCA(Retailer):
         detail_product = detail.get("product") if detail is not None else {}
         if not isinstance(detail_product, dict):
             detail_product = {}
-        availability = str(
-            detail_product.get("availabilityStatus")
-            or item.get("availabilityStatusDisplayValue")
-            or item.get("availabilityStatus")
-            or ""
-        ).lower().replace("_", " ")
-        if any(word in availability for word in ("out of stock", "unavailable")):
-            return None
+        availability = walmart_availability(item, detail)
 
         price = _parse_decimal(item.get("price"))
         if price is None:
@@ -406,4 +400,5 @@ class WalmartCA(Retailer):
             price_cad=price,
             image_url=image_url,
             condition=_condition(item, title, enriched_text),
+            availability=availability,
         )

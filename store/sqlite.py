@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS catalog (
     price_cad      REAL NOT NULL,
     image_url      TEXT,
     condition      TEXT NOT NULL,
+    availability   TEXT NOT NULL DEFAULT 'unknown',
     retrieved_at   TEXT NOT NULL,
     last_seen_at   TEXT NOT NULL,
     PRIMARY KEY (retailer, sku)
@@ -66,6 +67,11 @@ class Store:
         self._conn = sqlite3.connect(self.db_path)
         self._conn.execute(_SCHEMA)
         self._conn.executescript(_CATALOG_SCHEMA)
+        columns = {row[1] for row in self._conn.execute("PRAGMA table_info(catalog)")}
+        if "availability" not in columns:
+            self._conn.execute(
+                "ALTER TABLE catalog ADD COLUMN availability TEXT NOT NULL DEFAULT 'unknown'"
+            )
         self._conn.commit()
 
     def close(self) -> None:
@@ -82,8 +88,8 @@ class Store:
             """
             INSERT INTO catalog (
                 retailer, sku, product_type, url, title, cpu, ram_gb, gpu,
-                price_cad, image_url, condition, retrieved_at, last_seen_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                price_cad, image_url, condition, availability, retrieved_at, last_seen_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(retailer, sku) DO UPDATE SET
                 product_type = excluded.product_type,
                 url = excluded.url,
@@ -94,6 +100,7 @@ class Store:
                 price_cad = excluded.price_cad,
                 image_url = excluded.image_url,
                 condition = excluded.condition,
+                availability = excluded.availability,
                 retrieved_at = excluded.retrieved_at,
                 last_seen_at = excluded.last_seen_at
             """,
@@ -109,6 +116,7 @@ class Store:
                 float(listing.price_cad),
                 listing.image_url,
                 listing.condition,
+                listing.availability,
                 listing.retrieved_at.isoformat(),
                 now,
             ),
@@ -119,6 +127,14 @@ class Store:
         now = datetime.now(timezone.utc).isoformat()
         self._record_listing(listing, now)
         self._conn.commit()
+
+    def daily_ranking_due(self, day: str | None = None) -> bool:
+        """Check the schedule without marking a failed Discord send as posted."""
+        day = day or datetime.now(timezone.utc).date().isoformat()
+        row = self._conn.execute(
+            "SELECT value FROM metadata WHERE key = 'last_ranking_day'"
+        ).fetchone()
+        return row is None or row[0] != day
 
     def claim_daily_ranking(self, day: str | None = None) -> bool:
         """Return true once per UTC day and remember that day's printout."""
@@ -150,8 +166,9 @@ class Store:
         cutoff_iso = datetime.fromtimestamp(cutoff, timezone.utc).isoformat()
         sql = (
             "SELECT retailer, sku, product_type, url, title, cpu, ram_gb, gpu, "
-            "price_cad, image_url, condition, retrieved_at FROM catalog "
-            "WHERE product_type = ? AND last_seen_at >= ?"
+            "price_cad, image_url, condition, retrieved_at, availability FROM catalog "
+            "WHERE product_type = ? AND last_seen_at >= ? "
+            "AND availability != 'out_of_stock'"
         )
         params: list[object] = [product_type, cutoff_iso]
         if max_price_cad is not None:
@@ -177,6 +194,7 @@ class Store:
                 image_url=row[9],
                 condition=row[10],
                 retrieved_at=retrieved_at,
+                availability=row[12],
             ))
         return out
 
@@ -195,6 +213,10 @@ class Store:
         The row is always upserted regardless of alert outcome.
         last_alert_price_cad is updated only when we actually fire an alert.
         """
+        if listing.availability == "out_of_stock":
+            self.record_listing(listing)
+            return AlertDecision(reason=None, prev_price=None)
+
         cur = self._conn.execute(
             "SELECT last_price_cad, last_alert_price_cad FROM listings "
             "WHERE retailer = ? AND sku = ?",
