@@ -1,6 +1,6 @@
 # laptop-price-watcher
 
-Discord-alerted price watcher for gaming/pro laptops and gaming prebuilts in Quebec/Canada. It scans Canadian retailers twice daily, sends NEW/DROP laptop alerts, and prints component-based top-10 value lists for laptops and prebuilts. Walmart CA and Best Buy CA provide the prebuilt catalog; the laptop catalog also includes Newegg, Canada Computers, Memory Express, Apple, Lenovo, Visions, and RedFlagDeals.
+Discord-alerted price watcher for gaming/pro laptops and gaming prebuilts in Quebec/Canada. It scans Canadian retailers twice daily, sends NEW/DROP laptop alerts, and offers an interactive top-10 deal carousel for laptops and prebuilts. Walmart CA and Best Buy CA provide the prebuilt catalog; the laptop catalog also includes Newegg, Canada Computers, Memory Express, Apple, Lenovo, Visions, and RedFlagDeals.
 
 ## Watched CPUs
 
@@ -26,9 +26,9 @@ pip install -r requirements.txt
 cp .env.example .env   # then edit .env
 ```
 
-### 3. Optional slash-command bot
+### 3. Interactive Discord bot
 
-The automatic daily summaries use the webhook. To enable `/laptops` and `/prebuilts`:
+The webhook sends NEW/DROP alerts. Interactive rankings require the persistent bot. To enable `/deals`, `/laptops`, and `/prebuilts`:
 
 1. Create an application at the [Discord Developer Portal](https://discord.com/developers/applications), add a bot, and copy its token.
 2. Under **OAuth2 → URL Generator**, select `bot` and `applications.commands`; grant **Send Messages** and **Embed Links**, then invite it to the server.
@@ -36,10 +36,15 @@ The automatic daily summaries use the webhook. To enable `/laptops` and `/prebui
    ```
    DISCORD_BOT_TOKEN=...
    DISCORD_GUILD_ID=...   # optional; makes command updates instant in this server
+   DISCORD_CHANNEL_ID=... # optional; posts a daily menu in this channel
    ```
 4. Run `python watcher.py --once` at least once to populate the catalog, then run `python discord_bot.py` on an always-on host.
 
-A scheduled GitHub Actions job cannot listen for commands after it exits, so the persistent bot process is required for slash commands. Both commands read the latest catalog from `state.db`; run the watcher on the same host, mount a shared DB, or regularly pull the Action-committed `state.db` so the bot sees updates.
+Use `/deals` to open one message with a **Laptops / Prebuilts** dropdown, **Previous / Next**, **Refresh**, and a retailer link. `/laptops` and `/prebuilts` open the same menu in that category. Everyone in the chat can use it; changing a category resets to #1. Controls edit the existing message rather than adding more messages, and continue working after a bot restart.
+
+A scheduled GitHub Actions job cannot handle button clicks after it exits. Keep `python discord_bot.py` running on an always-on host. Menus read the latest catalog from `state.db` on each interaction; run the watcher on the same host, mount a shared DB, or regularly pull the Action-committed `state.db` so the bot sees updates. Refresh reads the catalog; it does not run a live retailer scrape.
+
+Set `DISCORD_CHANNEL_ID` (enable Discord Developer Mode and copy the channel ID) for an automatic daily menu. The bot needs access to that channel. Without it, menus are available through slash commands only. Run one bot instance per shared database.
 
 ### 4. Verify locally
 
@@ -49,7 +54,7 @@ python -m notifier.discord --test                                 # smoke-test w
 python watcher.py --dry-run --retailer newegg_ca --debug          # dry-run one retailer
 python watcher.py --dry-run --debug                               # dry-run all retailers
 python watcher.py --dry-run --retailer walmart_prebuilts --debug  # prebuilt smoke test
-python watcher.py --once                                          # one real run + rankings
+python watcher.py --once                                          # refresh catalog + NEW/DROP alerts
 python discord_bot.py                                             # persistent slash-command bot
 ```
 
@@ -75,7 +80,7 @@ laptop-price-watcher/
 │   └── *.py                 retailer adapters (including Walmart embedded JSON)
 ├── notifier/discord.py      alert + ranked-list embed builders
 ├── ranking.py               transparent component-value formula/tables
-├── discord_bot.py           /laptops and /prebuilts slash commands
+├── discord_bot.py           interactive /deals menu and daily carousel
 ├── store/sqlite.py          alert state + current listing catalog
 ├── watcher.py               orchestrator and automatic daily rankings
 ├── tests/                   pytest suite
@@ -93,7 +98,9 @@ python watcher.py --debug                 # print scan stats per retailer
 
 ## Value rankings
 
-Once per UTC day after a watcher cycle, Discord receives up to **10 laptops** and **10 prebuilts**, all priced at or below **$3,000 CAD**. `/laptops` and `/prebuilts` print the same current lists on demand. Entries are intentionally sent from #10 to #1, so deals get worse as you scroll upward from the bottom of a printout.
+Rankings include up to **10 laptops** and **10 prebuilts**, all priced at or below **$3,000 CAD**. The menu starts at #1 (best value) and shows one product at a time. With `DISCORD_CHANNEL_ID` set, the persistent bot posts one menu per UTC day when fresh deals are available.
+
+`ranking.presentation: menu` is the default and stops the watcher from sending the old multi-embed ranking stacks. To keep webhook-only rankings instead, set `ranking.presentation: stack`; those retain the legacy #10-to-#1 ordering. NEW/DROP webhook alerts are unchanged.
 
 The auditable value index in `ranking.py` is:
 
@@ -103,7 +110,7 @@ estimated fair hardware value / current price × 100
 
 Estimated hardware value combines a platform/chassis allowance, a versioned CPU contribution table, an optional GPU contribution table, system RAM, and a condition adjustment (new/open-box/refurbished/used). Unknown or incomplete components reduce confidence. It is a consistent deal-comparison heuristic—not a claim about exact resale value or a live benchmark price feed.
 
-`ranking.max_age_hours`, list limits, and daily automatic posting are configurable in `config.yaml`; code also enforces the hard $3,000 printout cap.
+`ranking.max_age_hours`, list limits, presentation mode, and daily automatic posting are configurable in `config.yaml`; code also enforces the hard $3,000 cap.
 
 ## How alerts work
 
@@ -112,6 +119,12 @@ Estimated hardware value combines a platform/chassis allowance, a versioned CPU 
 - **None**: silent. Most runs.
 
 State and recently seen complete listing details live in `state.db` (SQLite), committed back to the repo at the end of each cron run. Rankings ignore entries older than the configured freshness window.
+
+### Stock checks
+
+Retailer adapters record stock as **in stock**, **out of stock**, or **unknown**. Known sold-out items do not generate NEW/DROP alerts or appear in rankings. A sold-out observation updates the stored snapshot, removing a previously available deal. Unknown stock remains visible but is explicitly labelled **Unverified — check retailer**; missing stock data is never described as in stock. Existing database rows migrate to unknown until checked again.
+
+Stock reflects the last successful scan, not a reservation or live inventory guarantee. Listings absent from search results expire via the freshness window; a blocked scrape cannot confirm stock changes. Forum deals do not establish retailer inventory.
 
 ## Adding a retailer
 

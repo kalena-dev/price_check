@@ -92,7 +92,9 @@ def listing_passes_filters(
     listing: Listing,
     config: dict,
 ) -> bool:
-    """Apply condition + RAM filters before considering for alerts."""
+    """Apply availability, condition, and RAM filters before alerts."""
+    if listing.availability == "out_of_stock":
+        return False
     conditions = set(config.get("conditions", ["new"]))
     apple_refurb_ok = config.get("apple_include_refurb", False)
 
@@ -197,6 +199,14 @@ def run(args: argparse.Namespace) -> int:
                 continue
             stats["matched_cpu"] += 1
 
+            # Persist negative stock observations before filtering: otherwise
+            # yesterday's in-stock snapshot would remain in the carousel.
+            if listing.availability == "out_of_stock":
+                stats["out_of_stock"] += 1
+                if store is not None:
+                    store.record_listing(listing)
+                continue
+
             if not listing_passes_filters(listing, config):
                 continue
             stats["passed_filters"] += 1
@@ -281,6 +291,11 @@ def run(args: argparse.Namespace) -> int:
             if listing.product_type != "prebuilt":
                 continue
             stats["matched_prebuilt"] += 1
+            if listing.availability == "out_of_stock":
+                stats["out_of_stock"] += 1
+                if store is not None:
+                    store.record_listing(listing)
+                continue
             if not listing_passes_filters(listing, config):
                 continue
             stats["passed_filters"] += 1
@@ -295,11 +310,9 @@ def run(args: argparse.Namespace) -> int:
         notifier.post(webhook_url, embeds_to_post)
         log.info("posted %d alert embeds to Discord", len(embeds_to_post))
 
-    # Post two independent <=10-embed messages. Embeds are emitted #10 to #1,
-    # making deals progressively worse as the user scrolls upward. Scheduled
-    # runs claim at most one automatic printout per UTC day; slash commands
-    # remain available at any time.
-    ranking_enabled = (
+    # Interactive menus are posted by the persistent bot, not a webhook.
+    # Keep the old stack available only as an explicit compatibility option.
+    ranking_enabled = ranking_config.get("presentation", "menu") == "stack" and (
         ranking_config.get("post_daily", True)
         or ranking_config.get("post_each_cycle", False)
     )

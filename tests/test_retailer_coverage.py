@@ -42,6 +42,7 @@ def test_bestbuy_detail_specs_resolve_ambiguous_apple_cpu() -> None:
     assert listing is not None
     assert listing.cpu == "M4 Pro 14"
     assert listing.ram_gb == 24
+    assert listing.availability == "in_stock"
 
 
 def test_bestbuy_search_paginates_and_deduplicates() -> None:
@@ -119,6 +120,7 @@ def test_walmart_next_data_and_product_parser() -> None:
     assert listing.ram_gb == 32
     assert listing.gpu == "RTX 5070"
     assert listing.url.startswith("https://www.walmart.ca/")
+    assert listing.availability == "in_stock"
 
 
 def test_walmart_detail_specs_resolve_ambiguous_apple_cpu() -> None:
@@ -148,6 +150,7 @@ def test_walmart_detail_specs_resolve_ambiguous_apple_cpu() -> None:
     assert listing.cpu == "M4 Pro 14"
     assert listing.condition == "open_box"
     assert listing.ram_gb == 24
+    assert listing.availability == "in_stock"
 
 
 def test_walmart_parser_rejects_cpu_outside_allowlist() -> None:

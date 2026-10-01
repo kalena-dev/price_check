@@ -6,6 +6,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Literal
+
+
+Availability = Literal["in_stock", "out_of_stock", "unknown"]
 
 
 class RetailerError(Exception):
@@ -42,6 +46,7 @@ class Listing:
     retrieved_at: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+    availability: Availability = "unknown"
 
 
 class Retailer(ABC):

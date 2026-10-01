@@ -18,6 +18,7 @@ from decimal import Decimal
 
 from bs4 import BeautifulSoup
 
+from retailers._availability import bestbuy_availability
 from retailers._components import parse_system_ram
 from retailers._http import make_client
 from retailers._normalize import normalize_cpu
@@ -97,19 +98,6 @@ def _detail_spec_text(detail: dict) -> str:
             " ".join(all_values),
             long_description,
         ) if part
-    )
-
-
-def _detail_is_sold_out(detail: dict) -> bool:
-    availability = detail.get("availability") or {}
-    if not isinstance(availability, dict):
-        return False
-    online = str(availability.get("onlineAvailability") or "").lower()
-    in_store = str(availability.get("inStoreAvailability") or "").lower()
-    return (
-        online in {"soldout", "notavailable"}
-        and in_store in {"notavailable", "notavailableatthislocation"}
-        and not detail.get("isAvailableForPickup")
     )
 
 
@@ -247,8 +235,6 @@ class BestBuyCA(Retailer):
         title = str(p.get("name") or "")
         text = " ".join((title, str(p.get("shortDescription") or "")))
         if detail is not None:
-            if _detail_is_sold_out(detail):
-                return None
             text = f"{_detail_spec_text(detail)} {text}"
         cpu = normalize_cpu(text)
         if cpu is None:
@@ -304,4 +290,5 @@ class BestBuyCA(Retailer):
             price_cad=price,
             image_url=image_url,
             condition=condition,
+            availability=bestbuy_availability(p, detail),
         )

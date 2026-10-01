@@ -139,8 +139,12 @@ def test_store_round_trips_current_catalog_listing(tmp_path) -> None:
             max_age_hours=1,
             max_price_cad=Decimal("3000"),
         )
+        assert store.daily_ranking_due("2026-08-23")
+        assert store.daily_ranking_due("2026-08-23")  # checking does not claim
         assert store.claim_daily_ranking("2026-08-23")
+        assert not store.daily_ranking_due("2026-08-23")
         assert not store.claim_daily_ranking("2026-08-23")
+        assert store.daily_ranking_due("2026-08-24")
         assert store.claim_daily_ranking("2026-08-24")
 
     assert len(current) == 1

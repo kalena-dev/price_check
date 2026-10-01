@@ -6,6 +6,7 @@ import logging
 import time
 from decimal import Decimal
 
+from retailers._availability import walmart_availability
 from retailers._components import (
     looks_like_prebuilt,
     normalize_desktop_cpu,
@@ -107,13 +108,7 @@ class WalmartPrebuilts(Retailer):
         sku = str(item.get("usItemId") or "").strip()
         if not sku:
             return None
-        availability = str(
-            item.get("availabilityStatusDisplayValue")
-            or item.get("availabilityStatus")
-            or ""
-        ).lower().replace("_", " ")
-        if "out of stock" in availability or "unavailable" in availability:
-            return None
+        availability = walmart_availability(item)
 
         price = _parse_decimal(item.get("price"))
         if price is None:
@@ -153,4 +148,5 @@ class WalmartPrebuilts(Retailer):
             image_url=image_url,
             condition=_condition(item, title),
             product_type="prebuilt",
+            availability=availability,
         )

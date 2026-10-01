@@ -193,7 +193,7 @@ def rank_listings(
         if identity in seen:
             continue
         seen.add(identity)
-        if listing.product_type != product_type:
+        if listing.product_type != product_type or listing.availability == "out_of_stock":
             continue
         if listing.price_cad <= 0 or listing.price_cad > max_price_cad:
             continue

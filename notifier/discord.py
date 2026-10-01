@@ -39,6 +39,13 @@ RETAILER_DISPLAY = {
 }
 
 
+def _stock_label(listing: Listing) -> str:
+    return {
+        "in_stock": "In stock (last scan)",
+        "out_of_stock": "Out of stock (last scan)",
+    }.get(listing.availability, "Unverified — check retailer")
+
+
 def _format_price(p: Decimal) -> str:
     return f"${p:,.2f} CAD"
 
@@ -59,6 +66,7 @@ def build_embed(
 
     fields = [
         {"name": "Retailer", "value": retailer_name, "inline": True},
+        {"name": "Stock", "value": _stock_label(listing), "inline": True},
     ]
     if listing.ram_gb:
         fields.append({"name": "RAM", "value": f"{listing.ram_gb} GB", "inline": True})
@@ -126,6 +134,7 @@ def build_ranking_embeds(
         if listing.gpu:
             fields.append({"name": "GPU", "value": listing.gpu, "inline": True})
         fields.append({"name": "Retailer", "value": retailer_name, "inline": True})
+        fields.append({"name": "Stock", "value": _stock_label(listing), "inline": True})
         if listing.condition != "new":
             fields.append({
                 "name": "Condition",

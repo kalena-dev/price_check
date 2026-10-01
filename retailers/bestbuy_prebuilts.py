@@ -7,6 +7,7 @@ import re
 import time
 from decimal import Decimal
 
+from retailers._availability import bestbuy_availability
 from retailers._components import (
     looks_like_prebuilt,
     normalize_desktop_cpu,
@@ -179,4 +180,5 @@ class BestBuyPrebuilts(Retailer):
             image_url=image_url,
             condition=condition,
             product_type="prebuilt",
+            availability=bestbuy_availability(product),
         )
